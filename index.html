@@ -38,7 +38,12 @@
 
         /* AREA AI SCANNER */
         .ai-section { background: #f5f3ff; border: 2px dashed #c4b5fd; border-radius: 16px; padding: 15px; text-align: center; margin-bottom: 20px; }
-        .btn-ai { background: var(--ai); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-ai { background: var(--ai); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.3s; }
+        
+        /* TOMBOL JEPRET MANUAL */
+        .btn-scan-trigger { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; width: 100%; margin-top: 15px; display: none; transition: 0.2s; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2); }
+        .btn-scan-trigger:active { transform: scale(0.95); }
+
         #webcam-container { margin-top: 15px; display: flex; justify-content: center; overflow: hidden; border-radius: 12px; display: none; }
         #webcam-container canvas { border-radius: 12px; max-width: 100%; height: auto; }
         #ai-status { font-size: 12px; color: var(--ai); font-weight: 700; margin-top: 10px; display: none; }
@@ -52,11 +57,13 @@
         
         .qty-control { display: flex; align-items: center; gap: 10px; background: var(--white); padding: 5px; border-radius: 20px; border: 1px solid var(--border); }
         .qty-btn { width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--bg); color: var(--dark); font-weight: bold; cursor: pointer; }
-        .qty-value { font-size: 14px; font-weight: 800; width: 30px; text-align: center; color: var(--primary); }
+        .qty-value { font-size: 14px; font-weight: 800; width: 30px; text-align: center; color: var(--primary); transition: 0.3s; }
 
-        .btn-save { background: var(--success); color: white; border: none; width: 100%; padding: 15px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; position: sticky; bottom: 0; margin-top: 20px; transition: 0.3s; }
+        .btn-save { background: var(--success); color: white; border: none; width: 100%; padding: 15px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; position: sticky; bottom: 0; margin-top: 20px; transition: 0.3s; box-shadow: 0 -10px 20px rgba(255,255,255,0.9); }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.3); color: #10b981; } 100% { transform: scale(1); } }
+        .anim-pop { animation: pop 0.4s ease; }
     </style>
 </head>
 <body>
@@ -81,6 +88,11 @@
                 <i class="fa-solid fa-robot"></i> Nyalakan Kamera AI
             </button>
             <div id="webcam-container"></div>
+            
+            <button class="btn-scan-trigger" id="btnScanTrigger" onclick="scanManual()">
+                <i class="fa-solid fa-camera"></i> Jepret & Tambah Stok!
+            </button>
+
             <div id="ai-status">Memuat Otak AI... <i class="fa-solid fa-spinner fa-spin"></i></div>
         </div>
 
@@ -173,7 +185,14 @@
     function updateQty(index, change) {
         if (inventoryData[index].qty + change >= 0) {
             inventoryData[index].qty += change;
-            document.getElementById(`qty-${inventoryData[index].id}`).innerText = inventoryData[index].qty;
+            
+            let qtyElement = document.getElementById(`qty-${inventoryData[index].id}`);
+            qtyElement.innerText = inventoryData[index].qty;
+            
+            // Beri efek pop up membesar sedikit saat angka berubah
+            qtyElement.classList.remove('anim-pop');
+            void qtyElement.offsetWidth; // trigger reflow
+            qtyElement.classList.add('anim-pop');
         }
     }
 
@@ -192,12 +211,13 @@
     }
 
     // ==========================================
-    // LOGIC KECERDASAN BUATAN (AI)
+    // LOGIC KECERDASAN BUATAN (AI) - MODE MANUAL
     // ==========================================
-    let model, webcam, maxPredictions, isAiRunning = false, lastScanned = "";
+    let model, webcam, maxPredictions, isAiRunning = false;
 
     async function toggleAI() {
         const btnAi = document.getElementById("btnAi");
+        const btnScan = document.getElementById("btnScanTrigger");
         const container = document.getElementById("webcam-container");
         const status = document.getElementById("ai-status");
 
@@ -205,6 +225,7 @@
             webcam.stop();
             container.style.display = "none";
             status.style.display = "none";
+            btnScan.style.display = "none"; // Sembunyikan tombol jepret
             btnAi.innerHTML = '<i class="fa-solid fa-robot"></i> Nyalakan Kamera AI';
             btnAi.style.background = "var(--ai)";
             isAiRunning = false;
@@ -220,7 +241,6 @@
                 model = await tmImage.load(modelURL, metadataURL);
                 maxPredictions = model.getTotalClasses();
 
-                // PERBAIKAN: Set flip ke false dan paksa menggunakan kamera lingkungan/belakang (environment)
                 const flip = false; 
                 webcam = new tmImage.Webcam(250, 250, flip); 
                 await webcam.setup({ facingMode: "environment" }); 
@@ -230,9 +250,10 @@
                 container.innerHTML = "";
                 container.appendChild(webcam.canvas);
                 
-                status.innerHTML = "AI Aktif: Sedang memantau dapur... 🤖";
+                status.innerHTML = "AI Siap! Arahkan kamera dan klik tombol Jepret. 🤖";
                 btnAi.innerHTML = '<i class="fa-solid fa-xmark"></i> Matikan Kamera AI';
                 btnAi.style.background = "var(--muted)";
+                btnScan.style.display = "block"; // Munculkan tombol jepret
                 isAiRunning = true;
             } catch (error) {
                 alert("Gagal memuat AI. Pastikan Link Teachable Machine sudah benar!");
@@ -242,35 +263,56 @@
         }
     }
 
+    // Loop sekarang HANYA bertugas merekam layar kamera (Live View)
+    // Tidak menebak secara otomatis lagi!
     async function loop() {
         webcam.update(); 
-        await predict();
         if(isAiRunning) window.requestAnimationFrame(loop);
     }
 
-    async function predict() {
+    // Fungsi baru ini yang bertugas menebak HANYA ketika tombol ditekan
+    async function scanManual() {
+        if(!isAiRunning) return;
+        
+        const btnScan = document.getElementById("btnScanTrigger");
+        btnScan.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mendeteksi...';
+        btnScan.disabled = true;
+
         const prediction = await model.predict(webcam.canvas);
         
-        for (let i = 0; i < maxPredictions; i++) {
-            if (prediction[i].probability.toFixed(2) > 0.90) {
-                let detectedName = prediction[i].className;
-                
-                if(detectedName.toLowerCase().includes("kosong")) continue;
+        let highestProb = 0;
+        let detectedItem = "";
 
-                let foundIndex = inventoryData.findIndex(item => item.name.toLowerCase() === detectedName.toLowerCase());
-                
-                if (foundIndex !== -1 && lastScanned !== detectedName) {
-                    updateQty(foundIndex, 1);
-                    
-                    let card = document.getElementById(`item-card-${foundIndex}`);
-                    card.style.background = "#d1fae5"; 
-                    setTimeout(() => { card.style.background = "var(--bg)"; }, 1000);
-                    
-                    lastScanned = detectedName;
-                    
-                    setTimeout(() => { lastScanned = ""; }, 3000);
-                }
+        // Cari tebakan dengan persentase paling tinggi
+        for (let i = 0; i < maxPredictions; i++) {
+            if (prediction[i].probability > highestProb) {
+                highestProb = prediction[i].probability;
+                detectedItem = prediction[i].className;
             }
+        }
+        
+        // Kembalikan tombol seperti semula
+        setTimeout(() => {
+            btnScan.innerHTML = '<i class="fa-solid fa-camera"></i> Jepret & Tambah Stok!';
+            btnScan.disabled = false;
+        }, 500);
+
+        // Jika yakinnya di atas 85% dan BUKAN Latar Kosong
+        if (highestProb > 0.85 && !detectedItem.toLowerCase().includes("kosong")) {
+            let foundIndex = inventoryData.findIndex(item => item.name.toLowerCase() === detectedItem.toLowerCase());
+            
+            if (foundIndex !== -1) {
+                updateQty(foundIndex, 1);
+                
+                // Beri efek warna hijau
+                let card = document.getElementById(`item-card-${foundIndex}`);
+                card.style.background = "#d1fae5"; 
+                setTimeout(() => { card.style.background = "var(--bg)"; }, 1000);
+            } else {
+                alert("Oops! Terdeteksi " + detectedItem + ", tapi bahan tersebut tidak ada di daftar stokmu.");
+            }
+        } else {
+            alert("AI tidak yakin barang apa ini. Coba geser kamera atau ganti pencahayaan sedikit.");
         }
     }
 
