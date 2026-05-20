@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stok Bahan Baku | Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #2563eb; --dark: #0f172a; --bg: #f8fafc; --white: #ffffff;
+            --text: #334155; --muted: #64748b; --border: #e2e8f0; --success: #10b981;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+
+        /* KOTAK LOGIN RAHASIA */
+        .login-container { background: var(--white); width: 100%; max-width: 400px; padding: 40px 30px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.05); border: 1px solid var(--border); text-align: center; transition: 0.3s; }
+        .icon-lock { font-size: 40px; color: var(--primary); margin-bottom: 20px; background: #eff6ff; width: 80px; height: 80px; line-height: 80px; border-radius: 50%; display: inline-block; }
+        .login-container h1 { font-size: 22px; color: var(--dark); font-weight: 800; margin-bottom: 10px; }
+        .login-container p { font-size: 13px; color: var(--muted); margin-bottom: 25px; }
+        .form-control { width: 100%; padding: 14px 16px; border: 2px solid var(--border); border-radius: 12px; font-size: 14px; outline: none; transition: all 0.3s ease; background: var(--bg); text-align: center; letter-spacing: 2px; }
+        .form-control:focus { border-color: var(--primary); background: var(--white); }
+        .btn-action { background: var(--dark); color: var(--white); border: none; width: 100%; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.3s; margin-top: 15px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-action:hover { background: #1e293b; }
+
+        /* KOTAK DASBOR STOK (SEMBUNYI DULU) */
+        .dashboard-container { display: none; background: var(--white); width: 100%; max-width: 500px; padding: 30px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.05); border: 1px solid var(--border); animation: fadeIn 0.5s; }
+        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .dash-header h2 { font-size: 18px; color: var(--dark); font-weight: 800; display: flex; align-items: center; gap: 10px; }
+        .dash-header h2 i { color: var(--primary); }
+        .btn-logout { background: #fee2e2; color: #ef4444; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+        .stock-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
+        .stock-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
+        .stock-info { display: flex; flex-direction: column; }
+        .stock-name { font-size: 14px; font-weight: 700; color: var(--dark); }
+        .stock-unit { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        
+        .qty-control { display: flex; align-items: center; gap: 10px; background: var(--white); padding: 5px; border-radius: 20px; border: 1px solid var(--border); }
+        .qty-btn { width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--bg); color: var(--dark); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .qty-btn:active { transform: scale(0.95); }
+        .qty-value { font-size: 14px; font-weight: 700; width: 30px; text-align: center; color: var(--primary); }
+
+        .btn-save { background: var(--success); color: white; border: none; width: 100%; padding: 15px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; }
+        .btn-save:hover { background: #059669; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="login-container" id="loginScreen">
+        <div class="icon-lock"><i class="fa-solid fa-boxes-stacked"></i></div>
+        <h1>Akses Admin</h1>
+        <p>Silakan masukkan PIN rahasia untuk mengelola stok bahan baku dapur.</p>
+        
+        <input type="password" id="pinInput" class="form-control" placeholder="Masukkan PIN..." maxlength="6">
+        
+        <button class="btn-action" onclick="cekLogin()">
+            Buka Dasbor <i class="fa-solid fa-arrow-right"></i>
+        </button>
+        <p id="errorMsg" style="color: #ef4444; font-size: 12px; margin-top: 10px; display: none;">PIN Salah! Coba lagi.</p>
+    </div>
+
+    <div class="dashboard-container" id="dashboardScreen">
+        <div class="dash-header">
+            <h2><i class="fa-solid fa-clipboard-list"></i> Stok Bahan Baku</h2>
+            <button class="btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Keluar</button>
+        </div>
+
+        <div class="stock-list" id="stockListContainer">
+            </div>
+
+        <button class="btn-save" onclick="simpanStok()">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Simpan Update Stok
+        </button>
+    </div>
+
+<script>
+    // 1. DATA BAHAN BAKU (Contoh Data Awal)
+    let rawMaterials = [
+        { id: 'ikan', name: 'Ikan Tenggiri Giling', unit: 'Kilogram (Kg)', qty: 15 },
+        { id: 'sagu', name: 'Tepung Sagu', unit: 'Kilogram (Kg)', qty: 20 },
+        { id: 'telur', name: 'Telur Ayam', unit: 'Papan / Karpet', qty: 5 },
+        { id: 'mie', name: 'Mie Kuning Basah', unit: 'Bungkus', qty: 10 },
+        { id: 'ebi', name: 'Ebi Sangrai', unit: 'Toples', qty: 3 },
+        { id: 'cuko', name: 'Gula Merah (Cuko)', unit: 'Kilogram (Kg)', qty: 12 }
+    ];
+
+    // 2. FUNGSI LOGIN SEDERHANA (PIN: 1234)
+    function cekLogin() {
+        const pin = document.getElementById('pinInput').value;
+        if (pin === "1234") { // Ubah angka ini untuk mengganti PIN rahasiamu
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('dashboardScreen').style.display = 'block';
+            renderStock();
+        } else {
+            document.getElementById('errorMsg').style.display = 'block';
+            setTimeout(() => { document.getElementById('errorMsg').style.display = 'none'; }, 2000);
+        }
+    }
+
+    function logout() {
+        document.getElementById('pinInput').value = '';
+        document.getElementById('dashboardScreen').style.display = 'none';
+        document.getElementById('loginScreen').style.display = 'block';
+    }
+
+    // 3. FUNGSI RENDER LIST STOK
+    function renderStock() {
+        const container = document.getElementById('stockListContainer');
+        container.innerHTML = ''; // Bersihkan kontainer
+
+        rawMaterials.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'stock-item';
+            div.innerHTML = `
+                <div class="stock-info">
+                    <span class="stock-name">${item.name}</span>
+                    <span class="stock-unit">${item.unit}</span>
+                </div>
+                <div class="qty-control">
+                    <button class="qty-btn" onclick="updateQty(${index}, -1)"><i class="fa-solid fa-minus"></i></button>
+                    <div class="qty-value" id="qty-${item.id}">${item.qty}</div>
+                    <button class="qty-btn" onclick="updateQty(${index}, 1)"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    // 4. FUNGSI UPDATE ANGKA
+    function updateQty(index, change) {
+        if (rawMaterials[index].qty + change >= 0) {
+            rawMaterials[index].qty += change;
+            document.getElementById(`qty-${rawMaterials[index].id}`).innerText = rawMaterials[index].qty;
+        }
+    }
+
+    // 5. FUNGSI SIMPAN (Bisa disambungkan ke Firebase nanti)
+    function simpanStok() {
+        const btnSave = document.querySelector('.btn-save');
+        const originalText = btnSave.innerHTML;
+        
+        btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+        
+        // Simulasi loading 1 detik (Nanti ini diganti dengan kode update Firebase)
+        setTimeout(() => {
+            btnSave.style.background = '#10b981';
+            btnSave.innerHTML = '<i class="fa-solid fa-check"></i> Stok Berhasil Diperbarui!';
+            
+            setTimeout(() => {
+                btnSave.innerHTML = originalText;
+            }, 2000);
+        }, 1000);
+    }
+</script>
+
+</body>
+</html>
