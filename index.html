@@ -45,7 +45,7 @@
 
         .category-title { font-size: 14px; font-weight: 800; color: var(--dark); margin: 20px 0 10px; padding-left: 5px; }
         .stock-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
-        .stock-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
+        .stock-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; transition: background 0.3s ease; }
         .stock-info { display: flex; flex-direction: column; }
         .stock-name { font-size: 14px; font-weight: 700; color: var(--dark); }
         .stock-unit { font-size: 11px; color: var(--muted); margin-top: 2px; }
@@ -54,7 +54,7 @@
         .qty-btn { width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--bg); color: var(--dark); font-weight: bold; cursor: pointer; }
         .qty-value { font-size: 14px; font-weight: 800; width: 30px; text-align: center; color: var(--primary); }
 
-        .btn-save { background: var(--success); color: white; border: none; width: 100%; padding: 15px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; position: sticky; bottom: 0; margin-top: 20px;}
+        .btn-save { background: var(--success); color: white; border: none; width: 100%; padding: 15px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; position: sticky; bottom: 0; margin-top: 20px; transition: 0.3s; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -97,13 +97,9 @@
 
 <script>
     // ==========================================
-    // 1. TEMPAT MENARUH LINK AI DARI GOOGLE
+    // INI LINK AI MILIKMU YANG SUDAH TERPASANG:
     // ==========================================
-    // Nanti setelah kamu selesai training di Teachable Machine, 
-    // ganti tulisan GANTI_DENGAN_LINK_AI_KAMU di bawah ini dengan link aslimu.
-    
-    const URL_AI = "GANTI_DENGAN_LINK_AI_KAMU"; 
-    
+    const URL_AI = "https://teachablemachine.withgoogle.com/models/wrj1KnVWg/"; 
     // ==========================================
 
     const firebaseConfig = {
@@ -126,7 +122,6 @@
         { id: 'p_adaan', name: 'Pempek Adaan', unit: 'Pcs', category: 'pempek', qty: 0 }
     ];
 
-    // Ambil data Firebase (seperti biasa)
     db.collection("inventory").get().then((querySnapshot) => {
         if (!querySnapshot.empty) {
             querySnapshot.forEach((doc) => {
@@ -184,11 +179,15 @@
 
     function simpanStok() {
         const btnSave = document.getElementById('btnSave');
-        btnSave.innerHTML = 'Menyimpan...'; btnSave.disabled = true;
+        btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...'; 
+        btnSave.disabled = true;
+        
         let promises = inventoryData.map(item => db.collection("inventory").doc(item.id).set({ name: item.name, qty: item.qty, lastUpdated: firebase.firestore.FieldValue.serverTimestamp() }));
+        
         Promise.all(promises).then(() => {
-            btnSave.style.background = '#10b981'; btnSave.innerHTML = 'Tersimpan!';
-            setTimeout(() => { btnSave.innerHTML = 'Simpan Update Stok'; btnSave.style.background = 'var(--success)'; btnSave.disabled = false; }, 2000);
+            btnSave.style.background = '#10b981'; 
+            btnSave.innerHTML = '<i class="fa-solid fa-check"></i> Tersimpan!';
+            setTimeout(() => { btnSave.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Simpan Update Stok'; btnSave.style.background = 'var(--success)'; btnSave.disabled = false; }, 2000);
         });
     }
 
@@ -198,11 +197,6 @@
     let model, webcam, maxPredictions, isAiRunning = false, lastScanned = "";
 
     async function toggleAI() {
-        if (URL_AI === "GANTI_DENGAN_LINK_AI_KAMU") {
-            alert("Sistem AI belum aktif! Silakan latih foto di Teachable Machine dulu dan tempel linknya di kodingan.");
-            return;
-        }
-
         const btnAi = document.getElementById("btnAi");
         const container = document.getElementById("webcam-container");
         const status = document.getElementById("ai-status");
@@ -212,6 +206,7 @@
             container.style.display = "none";
             status.style.display = "none";
             btnAi.innerHTML = '<i class="fa-solid fa-robot"></i> Nyalakan Kamera AI';
+            btnAi.style.background = "var(--ai)";
             isAiRunning = false;
         } else {
             container.style.display = "flex";
@@ -255,29 +250,25 @@
     async function predict() {
         const prediction = await model.predict(webcam.canvas);
         
-        // Cari tebakan AI yang paling yakin (di atas 90% akurasinya)
         for (let i = 0; i < maxPredictions; i++) {
+            // Tingkat akurasi minimal 90% (0.90) agar AI yakin
             if (prediction[i].probability.toFixed(2) > 0.90) {
                 let detectedName = prediction[i].className;
                 
-                // Jika AI mendeteksi Latar Kosong, abaikan
                 if(detectedName.toLowerCase().includes("kosong")) continue;
 
-                // Cek apakah barang yang dideteksi ada di daftar stok kita
                 let foundIndex = inventoryData.findIndex(item => item.name.toLowerCase() === detectedName.toLowerCase());
                 
-                // Mencegah scan berulang (spam) pada benda yang sama dalam waktu berdekatan
                 if (foundIndex !== -1 && lastScanned !== detectedName) {
                     updateQty(foundIndex, 1);
                     
-                    // Beri efek warna hijau sebentar di layarnya
                     let card = document.getElementById(`item-card-${foundIndex}`);
                     card.style.background = "#d1fae5"; 
                     setTimeout(() => { card.style.background = "var(--bg)"; }, 1000);
                     
                     lastScanned = detectedName;
                     
-                    // Reset deteksi setelah 3 detik agar bisa di-scan lagi
+                    // Jedah waktu agar tidak terscan berkali-kali beruntun (3 detik)
                     setTimeout(() => { lastScanned = ""; }, 3000);
                 }
             }
