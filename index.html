@@ -13,13 +13,12 @@
     <style>
         :root {
             --primary: #2563eb; --dark: #0f172a; --bg: #f8fafc; --white: #ffffff;
-            --text: #334155; --muted: #64748b; --border: #e2e8f0; --success: #10b981;
+            --text: #334155; --muted: #64748b; --border: #e2e8f0; --success: #10b981; --warning: #f59e0b;
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
         body { background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
 
-        /* KOTAK LOGIN RAHASIA */
         .login-container { background: var(--white); width: 100%; max-width: 400px; padding: 40px 30px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.05); border: 1px solid var(--border); text-align: center; transition: 0.3s; }
         .icon-lock { font-size: 40px; color: var(--primary); margin-bottom: 20px; background: #eff6ff; width: 80px; height: 80px; line-height: 80px; border-radius: 50%; display: inline-block; }
         .login-container h1 { font-size: 22px; color: var(--dark); font-weight: 800; margin-bottom: 10px; }
@@ -29,15 +28,15 @@
         .btn-action { background: var(--dark); color: var(--white); border: none; width: 100%; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.3s; margin-top: 15px; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .btn-action:hover { background: #1e293b; }
 
-        /* KOTAK DASBOR STOK */
-        .dashboard-container { display: none; background: var(--white); width: 100%; max-width: 500px; padding: 30px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.05); border: 1px solid var(--border); animation: fadeIn 0.5s; }
-        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .dashboard-container { display: none; background: var(--white); width: 100%; max-width: 500px; padding: 30px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.05); border: 1px solid var(--border); animation: fadeIn 0.5s; max-height: 90vh; overflow-y: auto; }
+        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--white); z-index: 10; }
         .dash-header h2 { font-size: 18px; color: var(--dark); font-weight: 800; display: flex; align-items: center; gap: 10px; }
         .dash-header h2 i { color: var(--primary); }
         .btn-logout { background: #fee2e2; color: #ef4444; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
 
-        .stock-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
-        .stock-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
+        .category-title { font-size: 14px; font-weight: 800; color: var(--dark); margin: 20px 0 10px; padding-left: 5px; display: flex; align-items: center; gap: 8px; }
+        .stock-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        .stock-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
         .stock-info { display: flex; flex-direction: column; }
         .stock-name { font-size: 14px; font-weight: 700; color: var(--dark); }
         .stock-unit { font-size: 11px; color: var(--muted); margin-top: 2px; }
@@ -45,9 +44,9 @@
         .qty-control { display: flex; align-items: center; gap: 10px; background: var(--white); padding: 5px; border-radius: 20px; border: 1px solid var(--border); }
         .qty-btn { width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--bg); color: var(--dark); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .qty-btn:active { transform: scale(0.95); }
-        .qty-value { font-size: 14px; font-weight: 700; width: 30px; text-align: center; color: var(--primary); }
+        .qty-value { font-size: 14px; font-weight: 800; width: 30px; text-align: center; color: var(--primary); }
 
-        .btn-save { background: var(--success); color: white; border: none; width: 100%; padding: 15px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; }
+        .btn-save { background: var(--success); color: white; border: none; width: 100%; padding: 15px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; position: sticky; bottom: 0; margin-top: 20px;}
         .btn-save:hover { background: #059669; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -58,7 +57,7 @@
     <div class="login-container" id="loginScreen">
         <div class="icon-lock"><i class="fa-solid fa-boxes-stacked"></i></div>
         <h1>Akses Admin</h1>
-        <p>Silakan masukkan PIN rahasia untuk mengelola stok bahan baku dapur.</p>
+        <p>Silakan masukkan PIN rahasia untuk mengelola stok dapur Ibu Ita.</p>
         
         <input type="password" id="pinInput" class="form-control" placeholder="Masukkan PIN..." maxlength="6">
         
@@ -70,12 +69,15 @@
 
     <div class="dashboard-container" id="dashboardScreen">
         <div class="dash-header">
-            <h2><i class="fa-solid fa-clipboard-list"></i> Stok Bahan Baku</h2>
+            <h2><i class="fa-solid fa-clipboard-list"></i> Manajemen Stok</h2>
             <button class="btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Keluar</button>
         </div>
 
-        <div class="stock-list" id="stockListContainer">
-            </div>
+        <div class="category-title"><i class="fa-solid fa-box" style="color: var(--primary);"></i> Bahan Baku Utama</div>
+        <div class="stock-list" id="listBahan"></div>
+
+        <div class="category-title"><i class="fa-solid fa-fish" style="color: var(--warning);"></i> Stok Pempek & Tekwan</div>
+        <div class="stock-list" id="listPempek"></div>
 
         <button class="btn-save" id="btnSave" onclick="simpanStok()">
             <i class="fa-solid fa-cloud-arrow-up"></i> Simpan Update Stok
@@ -83,7 +85,6 @@
     </div>
 
 <script>
-    // 1. INISIALISASI FIREBASE (Sama dengan web utama)
     const firebaseConfig = {
         apiKey: "AIzaSyCZONKYX2sXBaCsIvZU6Nmd9r7b6KYgxhk",
         authDomain: "pempek-dan-tekwan-ibu-ita.firebaseapp.com",
@@ -95,30 +96,38 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 2. DATA BAHAN BAKU DEFAULT
-    let rawMaterials = [
-        { id: 'ikan', name: 'Ikan Tenggiri Giling', unit: 'Kilogram (Kg)', qty: 15 },
-        { id: 'sagu', name: 'Tepung Sagu', unit: 'Kilogram (Kg)', qty: 20 },
-        { id: 'telur', name: 'Telur Ayam', unit: 'Papan / Karpet', qty: 5 },
-        { id: 'mie', name: 'Mie Kuning Basah', unit: 'Bungkus', qty: 10 },
-        { id: 'ebi', name: 'Ebi Sangrai', unit: 'Toples', qty: 3 },
-        { id: 'cuko', name: 'Gula Merah (Cuko)', unit: 'Kilogram (Kg)', qty: 12 }
+    // DATA GABUNGAN: BAHAN BAKU & PEMPEK
+    let inventoryData = [
+        // --- KATEGORI BAHAN BAKU ---
+        { id: 'ikan', name: 'Ikan Tenggiri Giling', unit: 'Kilogram (Kg)', category: 'bahan', qty: 0 },
+        { id: 'sagu', name: 'Tepung Sagu', unit: 'Kilogram (Kg)', category: 'bahan', qty: 0 },
+        { id: 'telur', name: 'Telur Ayam', unit: 'Papan / Karpet', category: 'bahan', qty: 0 },
+        { id: 'cuko', name: 'Cuko / Gula Merah', unit: 'Liter / Kg', category: 'bahan', qty: 0 },
+        { id: 'mie', name: 'Mie Kuning Basah', unit: 'Bungkus', category: 'bahan', qty: 0 },
+
+        // --- KATEGORI STOK PEMPEK JADI ---
+        { id: 'p_kapal', name: 'Pempek Kapal Selam', unit: 'Pcs (Butir)', category: 'pempek', qty: 0 },
+        { id: 'p_telur', name: 'Pempek Telur Kecil', unit: 'Pcs (Butir)', category: 'pempek', qty: 0 },
+        { id: 'p_lenjer', name: 'Pempek Lenjer', unit: 'Pcs (Butir)', category: 'pempek', qty: 0 },
+        { id: 'p_adaan', name: 'Pempek Adaan', unit: 'Pcs (Butir)', category: 'pempek', qty: 0 },
+        { id: 'p_kulit', name: 'Pempek Kulit', unit: 'Pcs (Butir)', category: 'pempek', qty: 0 },
+        { id: 'p_keriting', name: 'Pempek Keriting', unit: 'Pcs (Butir)', category: 'pempek', qty: 0 },
+        { id: 't_biji', name: 'Biji Tekwan Mentah', unit: 'Porsi', category: 'pempek', qty: 0 }
     ];
 
-    // AMBIL DATA DARI FIREBASE SAAT HALAMAN DIBUKA
+    // AMBIL DATA DARI FIREBASE
     db.collection("inventory").get().then((querySnapshot) => {
         if (!querySnapshot.empty) {
             querySnapshot.forEach((doc) => {
                 let data = doc.data();
-                let index = rawMaterials.findIndex(m => m.id === doc.id);
+                let index = inventoryData.findIndex(m => m.id === doc.id);
                 if(index !== -1) {
-                    rawMaterials[index].qty = data.qty; // Update angka sesuai database
+                    inventoryData[index].qty = data.qty; 
                 }
             });
         }
     });
 
-    // 3. FUNGSI LOGIN SEDERHANA (PIN: 1234)
     function cekLogin() {
         const pin = document.getElementById('pinInput').value;
         if (pin === "1234") { 
@@ -137,12 +146,13 @@
         document.getElementById('loginScreen').style.display = 'block';
     }
 
-    // 4. FUNGSI RENDER LIST STOK
     function renderStock() {
-        const container = document.getElementById('stockListContainer');
-        container.innerHTML = ''; 
+        const listBahan = document.getElementById('listBahan');
+        const listPempek = document.getElementById('listPempek');
+        listBahan.innerHTML = ''; 
+        listPempek.innerHTML = ''; 
 
-        rawMaterials.forEach((item, index) => {
+        inventoryData.forEach((item, index) => {
             const div = document.createElement('div');
             div.className = 'stock-item';
             div.innerHTML = `
@@ -156,42 +166,44 @@
                     <button class="qty-btn" onclick="updateQty(${index}, 1)"><i class="fa-solid fa-plus"></i></button>
                 </div>
             `;
-            container.appendChild(div);
+            
+            if(item.category === 'bahan') {
+                listBahan.appendChild(div);
+            } else {
+                listPempek.appendChild(div);
+            }
         });
     }
 
-    // 5. FUNGSI UPDATE ANGKA SEMENTARA DI LAYAR
     function updateQty(index, change) {
-        if (rawMaterials[index].qty + change >= 0) {
-            rawMaterials[index].qty += change;
-            document.getElementById(`qty-${rawMaterials[index].id}`).innerText = rawMaterials[index].qty;
+        if (inventoryData[index].qty + change >= 0) {
+            inventoryData[index].qty += change;
+            document.getElementById(`qty-${inventoryData[index].id}`).innerText = inventoryData[index].qty;
         }
     }
 
-    // 6. FUNGSI SIMPAN KE DATABASE FIREBASE PERMANEN
     function simpanStok() {
         const btnSave = document.getElementById('btnSave');
         const originalText = btnSave.innerHTML;
         
-        btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan ke Database...';
+        btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
         btnSave.disabled = true;
         
         let promises = [];
         
-        // Simpan setiap bahan baku ke collection 'inventory'
-        rawMaterials.forEach(item => {
+        inventoryData.forEach(item => {
             promises.push(db.collection("inventory").doc(item.id).set({
                 name: item.name,
                 unit: item.unit,
+                category: item.category,
                 qty: item.qty,
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
             }));
         });
 
-        // Jika semua berhasil tersimpan
         Promise.all(promises).then(() => {
             btnSave.style.background = '#10b981';
-            btnSave.innerHTML = '<i class="fa-solid fa-check"></i> Stok Berhasil Tersimpan!';
+            btnSave.innerHTML = '<i class="fa-solid fa-check"></i> Tersimpan Permanen!';
             
             setTimeout(() => {
                 btnSave.innerHTML = originalText;
@@ -199,13 +211,12 @@
                 btnSave.disabled = false;
             }, 2500);
         }).catch((error) => {
-            alert("Terjadi kesalahan saat menyimpan data: " + error);
+            alert("Terjadi kesalahan: " + error);
             btnSave.innerHTML = originalText;
             btnSave.disabled = false;
         });
     }
 
-    // Tambahan: Tekan Enter untuk Login
     document.getElementById("pinInput").addEventListener("keypress", function(event) {
         if (event.key === "Enter") {
             event.preventDefault();
