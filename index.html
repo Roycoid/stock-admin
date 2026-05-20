@@ -3,17 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stok Bahan Baku | Admin Panel</title>
+    <title>Stok Bahan Baku | AI Admin Panel</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
     <style>
         :root {
             --primary: #2563eb; --dark: #0f172a; --bg: #f8fafc; --white: #ffffff;
-            --text: #334155; --muted: #64748b; --border: #e2e8f0; --success: #10b981; --warning: #f59e0b;
+            --text: #334155; --muted: #64748b; --border: #e2e8f0; --success: #10b981; --warning: #f59e0b; --ai: #8b5cf6;
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -24,17 +27,23 @@
         .login-container h1 { font-size: 22px; color: var(--dark); font-weight: 800; margin-bottom: 10px; }
         .login-container p { font-size: 13px; color: var(--muted); margin-bottom: 25px; }
         .form-control { width: 100%; padding: 14px 16px; border: 2px solid var(--border); border-radius: 12px; font-size: 14px; outline: none; transition: all 0.3s ease; background: var(--bg); text-align: center; letter-spacing: 2px; }
-        .form-control:focus { border-color: var(--primary); background: var(--white); }
-        .btn-action { background: var(--dark); color: var(--white); border: none; width: 100%; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.3s; margin-top: 15px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        
+        .btn-action { background: var(--dark); color: var(--white); border: none; width: 100%; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.3s; margin-top: 15px; }
         .btn-action:hover { background: #1e293b; }
 
         .dashboard-container { display: none; background: var(--white); width: 100%; max-width: 500px; padding: 30px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.05); border: 1px solid var(--border); animation: fadeIn 0.5s; max-height: 90vh; overflow-y: auto; }
         .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--white); z-index: 10; }
-        .dash-header h2 { font-size: 18px; color: var(--dark); font-weight: 800; display: flex; align-items: center; gap: 10px; }
-        .dash-header h2 i { color: var(--primary); }
+        .dash-header h2 { font-size: 18px; color: var(--dark); font-weight: 800; }
         .btn-logout { background: #fee2e2; color: #ef4444; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
 
-        .category-title { font-size: 14px; font-weight: 800; color: var(--dark); margin: 20px 0 10px; padding-left: 5px; display: flex; align-items: center; gap: 8px; }
+        /* AREA AI SCANNER */
+        .ai-section { background: #f5f3ff; border: 2px dashed #c4b5fd; border-radius: 16px; padding: 15px; text-align: center; margin-bottom: 20px; }
+        .btn-ai { background: var(--ai); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        #webcam-container { margin-top: 15px; display: flex; justify-content: center; overflow: hidden; border-radius: 12px; display: none; }
+        #webcam-container canvas { border-radius: 12px; max-width: 100%; height: auto; }
+        #ai-status { font-size: 12px; color: var(--ai); font-weight: 700; margin-top: 10px; display: none; }
+
+        .category-title { font-size: 14px; font-weight: 800; color: var(--dark); margin: 20px 0 10px; padding-left: 5px; }
         .stock-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
         .stock-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
         .stock-info { display: flex; flex-direction: column; }
@@ -42,41 +51,43 @@
         .stock-unit { font-size: 11px; color: var(--muted); margin-top: 2px; }
         
         .qty-control { display: flex; align-items: center; gap: 10px; background: var(--white); padding: 5px; border-radius: 20px; border: 1px solid var(--border); }
-        .qty-btn { width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--bg); color: var(--dark); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .qty-btn:active { transform: scale(0.95); }
+        .qty-btn { width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--bg); color: var(--dark); font-weight: bold; cursor: pointer; }
         .qty-value { font-size: 14px; font-weight: 800; width: 30px; text-align: center; color: var(--primary); }
 
-        .btn-save { background: var(--success); color: white; border: none; width: 100%; padding: 15px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; position: sticky; bottom: 0; margin-top: 20px;}
-        .btn-save:hover { background: #059669; }
-
+        .btn-save { background: var(--success); color: white; border: none; width: 100%; padding: 15px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; position: sticky; bottom: 0; margin-top: 20px;}
+        
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
     <div class="login-container" id="loginScreen">
-        <div class="icon-lock"><i class="fa-solid fa-boxes-stacked"></i></div>
-        <h1>Akses Admin</h1>
-        <p>Silakan masukkan PIN rahasia untuk mengelola stok dapur Ibu Ita.</p>
-        
+        <div class="icon-lock"><i class="fa-solid fa-microchip"></i></div>
+        <h1>AI Admin Panel</h1>
+        <p>Sistem cerdas manajemen stok dapur.</p>
         <input type="password" id="pinInput" class="form-control" placeholder="Masukkan PIN..." maxlength="6">
-        
-        <button class="btn-action" id="btnLogin" onclick="cekLogin()">
-            Buka Dasbor <i class="fa-solid fa-arrow-right"></i>
-        </button>
+        <button class="btn-action" id="btnLogin" onclick="cekLogin()">Buka Dasbor</button>
         <p id="errorMsg" style="color: #ef4444; font-size: 12px; margin-top: 10px; display: none;">PIN Salah! Coba lagi.</p>
     </div>
 
     <div class="dashboard-container" id="dashboardScreen">
         <div class="dash-header">
-            <h2><i class="fa-solid fa-clipboard-list"></i> Manajemen Stok</h2>
-            <button class="btn-logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Keluar</button>
+            <h2><i class="fa-solid fa-clipboard-list"></i> Stok Dapur</h2>
+            <button class="btn-logout" onclick="logout()"><i class="fa-solid fa-power-off"></i></button>
         </div>
 
-        <div class="category-title"><i class="fa-solid fa-box" style="color: var(--primary);"></i> Bahan Baku Utama</div>
+        <div class="ai-section">
+            <button class="btn-ai" id="btnAi" onclick="toggleAI()">
+                <i class="fa-solid fa-robot"></i> Nyalakan Kamera AI
+            </button>
+            <div id="webcam-container"></div>
+            <div id="ai-status">Memuat Otak AI... <i class="fa-solid fa-spinner fa-spin"></i></div>
+        </div>
+
+        <div class="category-title">📦 Bahan Baku Utama</div>
         <div class="stock-list" id="listBahan"></div>
 
-        <div class="category-title"><i class="fa-solid fa-fish" style="color: var(--warning);"></i> Stok Pempek & Tekwan</div>
+        <div class="category-title">🥟 Stok Pempek & Tekwan</div>
         <div class="stock-list" id="listPempek"></div>
 
         <button class="btn-save" id="btnSave" onclick="simpanStok()">
@@ -85,6 +96,16 @@
     </div>
 
 <script>
+    // ==========================================
+    // 1. TEMPAT MENARUH LINK AI DARI GOOGLE
+    // ==========================================
+    // Nanti setelah kamu selesai training di Teachable Machine, 
+    // ganti tulisan GANTI_DENGAN_LINK_AI_KAMU di bawah ini dengan link aslimu.
+    
+    const URL_AI = "GANTI_DENGAN_LINK_AI_KAMU"; 
+    
+    // ==========================================
+
     const firebaseConfig = {
         apiKey: "AIzaSyCZONKYX2sXBaCsIvZU6Nmd9r7b6KYgxhk",
         authDomain: "pempek-dan-tekwan-ibu-ita.firebaseapp.com",
@@ -96,34 +117,22 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // DATA GABUNGAN: BAHAN BAKU & PEMPEK
     let inventoryData = [
-        // --- KATEGORI BAHAN BAKU ---
-        { id: 'ikan', name: 'Ikan Tenggiri Giling', unit: 'Kilogram (Kg)', category: 'bahan', qty: 0 },
-        { id: 'sagu', name: 'Tepung Sagu', unit: 'Kilogram (Kg)', category: 'bahan', qty: 0 },
-        { id: 'telur', name: 'Telur Ayam', unit: 'Papan / Karpet', category: 'bahan', qty: 0 },
-        { id: 'cuko', name: 'Cuko / Gula Merah', unit: 'Liter / Kg', category: 'bahan', qty: 0 },
-        { id: 'mie', name: 'Mie Kuning Basah', unit: 'Bungkus', category: 'bahan', qty: 0 },
-
-        // --- KATEGORI STOK PEMPEK JADI ---
-        { id: 'p_kapal', name: 'Pempek Kapal Selam', unit: 'Pcs (Butir)', category: 'pempek', qty: 0 },
-        { id: 'p_telur', name: 'Pempek Telur Kecil', unit: 'Pcs (Butir)', category: 'pempek', qty: 0 },
-        { id: 'p_lenjer', name: 'Pempek Lenjer', unit: 'Pcs (Butir)', category: 'pempek', qty: 0 },
-        { id: 'p_adaan', name: 'Pempek Adaan', unit: 'Pcs (Butir)', category: 'pempek', qty: 0 },
-        { id: 'p_kulit', name: 'Pempek Kulit', unit: 'Pcs (Butir)', category: 'pempek', qty: 0 },
-        { id: 'p_keriting', name: 'Pempek Keriting', unit: 'Pcs (Butir)', category: 'pempek', qty: 0 },
-        { id: 't_biji', name: 'Biji Tekwan Mentah', unit: 'Porsi', category: 'pempek', qty: 0 }
+        { id: 'ikan', name: 'Ikan Giling', unit: 'Kilogram', category: 'bahan', qty: 0 },
+        { id: 'sagu', name: 'Tepung Sagu', unit: 'Kilogram', category: 'bahan', qty: 0 },
+        { id: 'cuko', name: 'Cuko', unit: 'Liter', category: 'bahan', qty: 0 },
+        { id: 'p_kapal', name: 'Pempek Kapal Selam', unit: 'Pcs', category: 'pempek', qty: 0 },
+        { id: 'p_lenjer', name: 'Pempek Lenjer', unit: 'Pcs', category: 'pempek', qty: 0 },
+        { id: 'p_adaan', name: 'Pempek Adaan', unit: 'Pcs', category: 'pempek', qty: 0 }
     ];
 
-    // AMBIL DATA DARI FIREBASE
+    // Ambil data Firebase (seperti biasa)
     db.collection("inventory").get().then((querySnapshot) => {
         if (!querySnapshot.empty) {
             querySnapshot.forEach((doc) => {
                 let data = doc.data();
                 let index = inventoryData.findIndex(m => m.id === doc.id);
-                if(index !== -1) {
-                    inventoryData[index].qty = data.qty; 
-                }
+                if(index !== -1) inventoryData[index].qty = data.qty; 
             });
         }
     });
@@ -140,38 +149,29 @@
         }
     }
 
-    function logout() {
-        document.getElementById('pinInput').value = '';
-        document.getElementById('dashboardScreen').style.display = 'none';
-        document.getElementById('loginScreen').style.display = 'block';
-    }
+    function logout() { location.reload(); }
 
     function renderStock() {
         const listBahan = document.getElementById('listBahan');
         const listPempek = document.getElementById('listPempek');
-        listBahan.innerHTML = ''; 
-        listPempek.innerHTML = ''; 
+        listBahan.innerHTML = ''; listPempek.innerHTML = ''; 
 
         inventoryData.forEach((item, index) => {
             const div = document.createElement('div');
             div.className = 'stock-item';
+            div.id = `item-card-${index}`;
             div.innerHTML = `
                 <div class="stock-info">
                     <span class="stock-name">${item.name}</span>
                     <span class="stock-unit">${item.unit}</span>
                 </div>
                 <div class="qty-control">
-                    <button class="qty-btn" onclick="updateQty(${index}, -1)"><i class="fa-solid fa-minus"></i></button>
+                    <button class="qty-btn" onclick="updateQty(${index}, -1)">-</button>
                     <div class="qty-value" id="qty-${item.id}">${item.qty}</div>
-                    <button class="qty-btn" onclick="updateQty(${index}, 1)"><i class="fa-solid fa-plus"></i></button>
+                    <button class="qty-btn" onclick="updateQty(${index}, 1)">+</button>
                 </div>
             `;
-            
-            if(item.category === 'bahan') {
-                listBahan.appendChild(div);
-            } else {
-                listPempek.appendChild(div);
-            }
+            if(item.category === 'bahan') listBahan.appendChild(div); else listPempek.appendChild(div);
         });
     }
 
@@ -184,45 +184,107 @@
 
     function simpanStok() {
         const btnSave = document.getElementById('btnSave');
-        const originalText = btnSave.innerHTML;
-        
-        btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
-        btnSave.disabled = true;
-        
-        let promises = [];
-        
-        inventoryData.forEach(item => {
-            promises.push(db.collection("inventory").doc(item.id).set({
-                name: item.name,
-                unit: item.unit,
-                category: item.category,
-                qty: item.qty,
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            }));
-        });
-
+        btnSave.innerHTML = 'Menyimpan...'; btnSave.disabled = true;
+        let promises = inventoryData.map(item => db.collection("inventory").doc(item.id).set({ name: item.name, qty: item.qty, lastUpdated: firebase.firestore.FieldValue.serverTimestamp() }));
         Promise.all(promises).then(() => {
-            btnSave.style.background = '#10b981';
-            btnSave.innerHTML = '<i class="fa-solid fa-check"></i> Tersimpan Permanen!';
-            
-            setTimeout(() => {
-                btnSave.innerHTML = originalText;
-                btnSave.style.background = 'var(--success)';
-                btnSave.disabled = false;
-            }, 2500);
-        }).catch((error) => {
-            alert("Terjadi kesalahan: " + error);
-            btnSave.innerHTML = originalText;
-            btnSave.disabled = false;
+            btnSave.style.background = '#10b981'; btnSave.innerHTML = 'Tersimpan!';
+            setTimeout(() => { btnSave.innerHTML = 'Simpan Update Stok'; btnSave.style.background = 'var(--success)'; btnSave.disabled = false; }, 2000);
         });
     }
 
-    document.getElementById("pinInput").addEventListener("keypress", function(event) {
-        if (event.key === "Enter") {
-            event.preventDefault();
-            cekLogin();
+    // ==========================================
+    // LOGIC KECERDASAN BUATAN (AI)
+    // ==========================================
+    let model, webcam, maxPredictions, isAiRunning = false, lastScanned = "";
+
+    async function toggleAI() {
+        if (URL_AI === "GANTI_DENGAN_LINK_AI_KAMU") {
+            alert("Sistem AI belum aktif! Silakan latih foto di Teachable Machine dulu dan tempel linknya di kodingan.");
+            return;
         }
-    });
+
+        const btnAi = document.getElementById("btnAi");
+        const container = document.getElementById("webcam-container");
+        const status = document.getElementById("ai-status");
+
+        if (isAiRunning) {
+            webcam.stop();
+            container.style.display = "none";
+            status.style.display = "none";
+            btnAi.innerHTML = '<i class="fa-solid fa-robot"></i> Nyalakan Kamera AI';
+            isAiRunning = false;
+        } else {
+            container.style.display = "flex";
+            status.style.display = "block";
+            btnAi.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyiapkan Lensa...';
+            
+            const modelURL = URL_AI + "model.json";
+            const metadataURL = URL_AI + "metadata.json";
+            
+            try {
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+
+                const flip = true; 
+                webcam = new tmImage.Webcam(250, 250, flip); 
+                await webcam.setup(); 
+                await webcam.play();
+                window.requestAnimationFrame(loop);
+
+                container.innerHTML = "";
+                container.appendChild(webcam.canvas);
+                
+                status.innerHTML = "AI Aktif: Sedang memantau dapur... 🤖";
+                btnAi.innerHTML = '<i class="fa-solid fa-xmark"></i> Matikan Kamera AI';
+                btnAi.style.background = "var(--muted)";
+                isAiRunning = true;
+            } catch (error) {
+                alert("Gagal memuat AI. Pastikan Link Teachable Machine sudah benar!");
+                console.error(error);
+                status.style.display = "none";
+            }
+        }
+    }
+
+    async function loop() {
+        webcam.update(); 
+        await predict();
+        if(isAiRunning) window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+        const prediction = await model.predict(webcam.canvas);
+        
+        // Cari tebakan AI yang paling yakin (di atas 90% akurasinya)
+        for (let i = 0; i < maxPredictions; i++) {
+            if (prediction[i].probability.toFixed(2) > 0.90) {
+                let detectedName = prediction[i].className;
+                
+                // Jika AI mendeteksi Latar Kosong, abaikan
+                if(detectedName.toLowerCase().includes("kosong")) continue;
+
+                // Cek apakah barang yang dideteksi ada di daftar stok kita
+                let foundIndex = inventoryData.findIndex(item => item.name.toLowerCase() === detectedName.toLowerCase());
+                
+                // Mencegah scan berulang (spam) pada benda yang sama dalam waktu berdekatan
+                if (foundIndex !== -1 && lastScanned !== detectedName) {
+                    updateQty(foundIndex, 1);
+                    
+                    // Beri efek warna hijau sebentar di layarnya
+                    let card = document.getElementById(`item-card-${foundIndex}`);
+                    card.style.background = "#d1fae5"; 
+                    setTimeout(() => { card.style.background = "var(--bg)"; }, 1000);
+                    
+                    lastScanned = detectedName;
+                    
+                    // Reset deteksi setelah 3 detik agar bisa di-scan lagi
+                    setTimeout(() => { lastScanned = ""; }, 3000);
+                }
+            }
+        }
+    }
+
+    document.getElementById("pinInput").addEventListener("keypress", (e) => { if(e.key === "Enter") cekLogin(); });
 </script>
 
 </body>
